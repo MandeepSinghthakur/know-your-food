@@ -18,7 +18,7 @@ export default function FoodIdentifier() {
     fileInputRef.current.click()
   }
 
-  const identifyFood = async (file) => {
+  const identifyFood = async () => {
     setLoading(true)
     try {
         const response = await fetch('/api/identify', {

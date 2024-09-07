@@ -1,3 +1,4 @@
+'use client'
 import { NextResponse } from 'next/server'
 import { ClarifaiStub, grpc } from 'clarifai-nodejs-grpc'
 import OpenAI from 'openai'
