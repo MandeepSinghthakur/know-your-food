@@ -1,75 +1,50 @@
-'use client'
-import { NextResponse } from 'next/server'
-import { ClarifaiStub, grpc } from 'clarifai-nodejs-grpc'
-import OpenAI from 'openai'
+// app/api/analyzeFood/route.js
 
-const stub = ClarifaiStub.grpc()
-const metadata = new grpc.Metadata()
-metadata.set('authorization', `Key ${process.env.CLARIFAI_API_KEY}`)
+import axios from 'axios';
+import { NextResponse } from 'next/server';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
+const CLARIFAI_API_KEY = process.env.CLARIFAI_API_KEY;
+const CLARIFAI_MODEL_ID = 'food-item-recognition'; // Adjust this to your specific Clarifai model
 
-export async function POST(request) {
-  const body = await request.json();
-  const { image } = body;
-  if (!image) {
-    return NextResponse.json({ error: 'No image provided' }, { status: 400 })
-  }
-
+export async function POST(req) {
   try {
-    const buffer = await image.arrayBuffer()
-    const bytes = new Uint8Array(buffer)
+    const { imageBase64 } = await req.json();
 
-    const clarifaiResponse = await new Promise((resolve, reject) => {
-      stub.PostModelOutputs(
-        {
-          // Use the general food model
-          model_id: 'food-item-v1-recognition',
-          inputs: [{ data: { image: { base64: bytes } } }],
-        },
-        metadata,
-        (err, response) => {
-          if (err) {
-            reject(err)
-          } else if (response.status.code !== 10000) {
-            reject(new Error(response.status.description))
-          } else {
-            resolve(response)
-          }
-        }
-      )
-    })
+    // Check if API keys are set
+    if (!CLARIFAI_API_KEY) {
+      return NextResponse.json(
+        { message: 'API keys for Clarifai or OpenAI are missing' },
+        { status: 500 }
+      );
+    }
 
-    const foodName = clarifaiResponse.outputs[0].data.concepts[0].name
+    // Step 1: Analyze Image with Clarifai
+    const clarifaiResponse = await axios({
+      method: 'POST',
+      url: `https://api.clarifai.com/v2/models/${CLARIFAI_MODEL_ID}/outputs`,
+      headers: {
+        Authorization: `Key ${CLARIFAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      data: {
+        inputs: [
+          {
+            data: {
+              image: {
+                base64: imageBase64.split(',')[1]
+              },
+            },
+          },
+        ],
+      },
+    });
 
-    const ingredientsResponse = await openai.completions.create({
-      model: 'gpt-3.5-turbo-instruct',
-      prompt: `List the main ingredients of ${foodName}:`,
-      max_tokens: 100,
-    })
-
-    const ingredients = ingredientsResponse.choices[0].text
-      .trim()
-      .split('\n')
-      .map((ingredient) => ingredient.replace(/^\d+\.\s*/, '').trim())
-
-    const caloriesResponse = await openai.completions.create({
-      model: 'gpt-3.5-turbo-instruct',
-      prompt: `Estimate the calories in a typical serving of ${foodName}:`,
-      max_tokens: 50,
-    })
-
-    const calories = caloriesResponse.choices[0].text.trim()
-
-    return NextResponse.json({
-      name: foodName,
-      ingredients,
-      calories,
-    })
+    const foodData = clarifaiResponse.data;
+  //  console.log(clarifaiResponse, 'clarifaiResponse');
+    const ingredients = foodData.outputs[0]?.data?.concepts.map((concept) => concept.name) || [];
+    return NextResponse.json({ ingredients, foodData }, { status: 200 });
   } catch (error) {
-    console.error('Error processing image:', error)
-    return NextResponse.json({ error: 'Failed to process image' }, { status: 500 })
+    console.error('Error processing request:', error);
+    return NextResponse.json({ message: 'Error processing request', error: error.message }, { status: 500 });
   }
 }
