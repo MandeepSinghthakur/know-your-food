@@ -1,14 +1,19 @@
-//@ts-ignore
 "use client";
 
 import { useState, useRef } from "react";
 
+export interface ImageUploadProps {
+  setImageFile: (fileName: File | null) => void;
+  setImageUrl: (fileNameUrl: string | null) => void;
+  setIngredients:(ingredients: []| null)=> void;
+  setFoodName:(foodName: string | null) => void;
+}
 export default function ImageUpload({
   setImageFile,
   setImageUrl,
   setIngredients,
   setFoodName,
-}: any) {
+}: ImageUploadProps) {
   const [loading, setLoading] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);

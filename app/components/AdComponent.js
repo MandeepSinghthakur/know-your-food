@@ -10,7 +10,7 @@ export default function AdComponent({ slot }) {
     script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6061696000364436"'
     script.async = true
     script.crossOrigin = 'anonymous'
-    document.body.head.appendChild(script)
+    document.body.appendChild(script)
 
     // Initialize ads
     try {
