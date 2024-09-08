@@ -26,7 +26,7 @@ export async function POST(req) {
             },
             {
               role: "user",
-              content: promptText + '.Return the information as a JSON object with ingredient names as keys and calorie values as numbers'
+              content: promptText + '.Return the information as a single numerical value of calorie without any extra information about quantity or approximation.'
             }
           ]
         },
@@ -37,8 +37,8 @@ export async function POST(req) {
           }
         }
       );
-    const calorieInfo = JSON.parse(openaiResponse.data.choices[0].message.content);
-    return NextResponse.json({  calorieInfo }, { status: 200 });
+    const calorieInfo = Number(openaiResponse.data.choices[0].message.content.replace(/[^0-9]/g, ''));
+    return NextResponse.json({ calorieInfo }, { status: 200 });
   } catch (error) {
     console.error('Error fetching calorie information:', error);
     return NextResponse.json({ error: 'Failed to fetch calorie information' }, { status: 500 });

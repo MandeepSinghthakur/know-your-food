@@ -64,7 +64,7 @@ export default function EnhancedFoodIdentifier() {
         ingredients.map(async ({ name, quantity, unit }) => {
           const promptText = `Provide the calorie information for the ingredient ${name} with approx quantity of ${quantity} ${unit ? unit + ' in units' : 'cup'}`;
           const response = await axios.post('/api/getCalorieInfo', { promptText });
-          return { ingredient: name, calories: response.data.calorieInfo[name]};
+          return { ingredient: name, calories: response.data.calorieInfo};
         })
       );
       setCalorieInfos(calorieData);
