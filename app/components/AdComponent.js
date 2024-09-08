@@ -7,10 +7,10 @@ export default function AdComponent({ slot }) {
   useEffect(() => {
     // Load Google AdSense script
     const script = document.createElement('script')
-    script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js'
+    script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6061696000364436"'
     script.async = true
     script.crossOrigin = 'anonymous'
-    document.body.appendChild(script)
+    document.body.head.appendChild(script)
 
     // Initialize ads
     try {
