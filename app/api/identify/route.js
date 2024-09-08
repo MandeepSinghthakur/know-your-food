@@ -1,5 +1,4 @@
 // app/api/analyzeFood/route.js
-
 import axios from 'axios';
 import { NextResponse } from 'next/server';
 
@@ -10,15 +9,15 @@ export async function POST(req) {
   try {
     const { imageBase64 } = await req.json();
 
-    // Check if API keys are set
+    // Check if API key is set
     if (!CLARIFAI_API_KEY) {
       return NextResponse.json(
-        { message: 'API keys for Clarifai or OpenAI are missing' },
+        { message: 'API key for Clarifai is missing' },
         { status: 500 }
       );
     }
 
-    // Step 1: Analyze Image with Clarifai
+    // Analyze Image with Clarifai
     const clarifaiResponse = await axios({
       method: 'POST',
       url: `https://api.clarifai.com/v2/models/${CLARIFAI_MODEL_ID}/outputs`,
@@ -40,9 +39,20 @@ export async function POST(req) {
     });
 
     const foodData = clarifaiResponse.data;
-  //  console.log(clarifaiResponse, 'clarifaiResponse');
-    const ingredients = foodData.outputs[0]?.data?.concepts.map((concept) => concept.name) || [];
-    return NextResponse.json({ ingredients, foodData }, { status: 200 });
+    const concepts = foodData.outputs[0]?.data?.concepts || [];
+
+    // Extract food name (assuming the first concept is the most likely food item)
+    const foodName = concepts.length > 0 ? concepts[0].name : 'Unknown Food';
+    // Extract ingredients (concepts after the first one, with confidence > 0.05)
+    const ingredients = concepts.slice(1)
+      .filter(concept => parseFloat(concept.value) > 0.035)
+      .map(concept => concept.name);
+
+    return NextResponse.json({ 
+      foodName, 
+      ingredients
+    }, { status: 200 });
+
   } catch (error) {
     console.error('Error processing request:', error);
     return NextResponse.json({ message: 'Error processing request', error: error.message }, { status: 500 });

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Loader2 } from 'lucide-react';
+import ImageUpload from './ImageUpload';
 
 const unitConversions = {
   'cup': 240,
@@ -12,6 +13,7 @@ const unitConversions = {
 export default function EnhancedFoodIdentifier() {
   const [imageUrl, setImageUrl] = useState(null);
   const [imageFile, setImageFile] = useState(null);
+  const [foodName, setFoodName] = useState(null);
   const [ingredients, setIngredients] = useState([]);
   const [calorieInfos, setCalorieInfos] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -23,47 +25,6 @@ export default function EnhancedFoodIdentifier() {
     setTotalCalories(newTotalCalories);
   }, [calorieInfos]);
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = (event) => setImageUrl(event.target.result);
-    }
-  };
-
-  const handleCapture = () => {
-    const video = document.createElement('video');
-    video.setAttribute('autoplay', '');
-    document.body.appendChild(video);
-
-    navigator.mediaDevices.getUserMedia({ video: true })
-      .then((stream) => {
-        video.srcObject = stream;
-
-        setTimeout(() => {
-          const canvas = document.createElement('canvas');
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
-          canvas.getContext('2d').drawImage(video, 0, 0);
-
-          video.srcObject.getTracks().forEach((track) => track.stop());
-          document.body.removeChild(video);
-
-          canvas.toBlob((blob) => {
-            const file = new File([blob], 'capture.png', { type: 'image/png' });
-            setImageFile(file);
-            var reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = function(event) {
-              setImageUrl(event.target.result);
-            };
-          });
-        }, 1000);
-      })
-      .catch((error) => console.error('Error accessing camera:', error));
-  };
 
   const handleDeleteIngredient = (index) => {
     const updatedIngredients = ingredients.filter((_, i) => i !== index);
@@ -120,6 +81,8 @@ export default function EnhancedFoodIdentifier() {
       const imageBase64 = await toBase64(imageFile);
       const response = await axios.post('/api/identify', { imageBase64 });
       setIngredients(response.data.ingredients.map(ingredient => ({ name: ingredient, quantity: 1 })));
+      console.log(response.data);
+      setFoodName(response.data.foodName)
       setCalorieInfos([]);
       setTotalCalories(0);
     } catch (error) {
@@ -141,32 +104,7 @@ export default function EnhancedFoodIdentifier() {
   return (
     <div className="bg-white p-8 rounded-lg shadow-lg max-w-4xl w-full mx-auto">      
       <div className="flex justify-center mb-6 gap-4">
-        <input
-          type="file"
-          accept="image/*"
-          onChange={handleFileChange}
-          className="hidden"
-          id="upload"
-        />
-        <label
-          htmlFor="upload"
-          className="px-4 py-2 bg-blue-500 text-white rounded-lg cursor-pointer hover:bg-blue-600 transition flex items-center"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
-          </svg>
-          Upload Image
-        </label>
-        
-        <button
-          onClick={handleCapture}
-          className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition flex items-center"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586a1 1 0 01-.707-.293l-1.121-1.121A2 2 0 0011.172 3H8.828a2 2 0 00-1.414.586L6.293 4.707A1 1 0 015.586 5H4zm6 9a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
-          </svg>
-          Capture from Camera
-        </button>
+        <ImageUpload setImageFile ={setImageFile} setImageUrl={setImageUrl}/>
       </div>
 
       {imageUrl && (
@@ -199,9 +137,20 @@ export default function EnhancedFoodIdentifier() {
         </div>
       )}
 
+    {foodName && (
+        <div className="w-full max-w-2xl mx-auto my-8 p-6 bg-gradient-to-r from-green-100 to-blue-100 rounded-lg shadow-lg">
+          <h3 className="text-3xl sm:text-4xl font-bold text-center text-gray-800 mb-2">
+            Probable Food:
+          </h3>
+          <p className="text-2xl sm:text-3xl text-center text-green-600 font-semibold capitalize">
+            {foodName === 'soup' ? 'Some kind of soup' : foodName}
+          </p>
+        </div>
+      )}
+
       {ingredients.length > 0 && (
         <div className="mt-6 w-full">
-          <h3 className="text-2xl font-semibold mb-4">Ingredients List:</h3>
+          <h3 className="text-2xl font-semibold mb-4">Probable Ingredients List:</h3>
           <div className="overflow-x-auto">
             <table className="min-w-full bg-white rounded-lg shadow-md">
               <thead className="bg-gray-100">
@@ -264,7 +213,7 @@ export default function EnhancedFoodIdentifier() {
               className="px-6 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition flex items-center"
               disabled={calorieLoading}
             >
-              {calorieLoading ? (
+              {calorieLoading  ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Fetching Calories...
