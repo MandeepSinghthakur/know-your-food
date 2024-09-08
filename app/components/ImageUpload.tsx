@@ -4,7 +4,7 @@ import { useState, useRef } from "react";
 
 export interface ImageUploadProps {
   setImageFile: (fileName: File | null) => void;
-  setImageUrl: (fileNameUrl: string | null) => void;
+  setImageUrl: (fileNameUrl: string | ArrayBuffer | null) => void;
   setIngredients:(ingredients: []| null)=> void;
   setFoodName:(foodName: string | null) => void;
 }
@@ -35,9 +35,10 @@ export default function ImageUpload({
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onload = (event) => {
-      //@ts-ignore
+      if(event.target){
       setImageUrl(event.target.result);
       setLoading(false);
+      }
     };
     reader.onerror = () => {
       console.error("Error reading the file");
